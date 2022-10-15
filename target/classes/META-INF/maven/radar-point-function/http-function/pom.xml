@@ -1,0 +1,91 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<modelVersion>4.0.0</modelVersion>
+<groupId>radar-point-function</groupId>
+<artifactId>http-function</artifactId>
+<version>1.0-SNAPSHOT</version>
+<properties>
+<maven.compiler.target>17</maven.compiler.target>
+<maven.compiler.source>17</maven.compiler.source>
+</properties>
+<dependencies>
+<dependency>
+<groupId>com.google.cloud</groupId>
+<artifactId>google-cloud-pubsub</artifactId>
+<version>1.120.18</version>
+</dependency>
+<dependency>
+<groupId>com.google.cloud.functions</groupId>
+<artifactId>functions-framework-api</artifactId>
+<version>1.0.4</version>
+</dependency>
+<dependency>
+<groupId>com.google.firebase</groupId>
+<artifactId>firebase-admin</artifactId>
+<version>9.0.0</version>
+<scope>compile</scope>
+</dependency>
+<dependency>
+<groupId>org.apache.commons</groupId>
+<artifactId>commons-collections4</artifactId>
+<version>4.4</version>
+</dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>3.7.7</version>
+      <scope>test</scope>
+    </dependency> 
+    <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+</dependencies>
+<!--  Required for Java 11 functions in the inline editor  -->
+<build>
+<plugins>
+<!-- <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <argLine>-javaagent:${basedir}/target/opentelemetry-javaagent.jar</argLine>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>-Dotel.resource.attributes=service.name=myservicename</argument>
+                        <argument>-Dotel.traces.exporter=zipkin</argument>
+                    </arguments>
+                </configuration>
+            </plugin> -->
+<plugin>
+<groupId>org.apache.maven.plugins</groupId>
+<artifactId>maven-compiler-plugin</artifactId>
+<version>3.8.1</version>
+<configuration>
+<excludes>
+<exclude>.google/</exclude>
+</excludes>
+</configuration>
+</plugin>
+<plugin>
+<!-- 
+                  Google Cloud Functions Framework Maven plugin
+
+                  This plugin allows you to run Cloud Functions Java code
+                  locally. Use the following terminal command to run a
+                  given function locally:
+                  mvn function:run -Drun.functionTarget=your.package.yourFunction
+                 -->
+<groupId>com.google.cloud.functions</groupId>
+<artifactId>function-maven-plugin</artifactId>
+<version>0.10.0</version>
+<configuration>
+<functionTarget>com.example.Example</functionTarget>
+</configuration>
+</plugin>
+</plugins>
+</build>
+</project>

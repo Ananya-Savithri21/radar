@@ -1,0 +1,5 @@
+projectid: "cherish-serenity-dev"
+region: "us-central1"
+appname: "radarpoint"
+subscriptionId: "test-template-sub"
+gcsbucket: "serenity-1"
