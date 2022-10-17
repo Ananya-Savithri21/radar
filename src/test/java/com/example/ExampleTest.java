@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -22,7 +23,7 @@ class ExampleTest {
 	@Mock
 	private HttpResponse response;
 
-	Example eg = Mockito.spy(Example.class);
+	Example example = Mockito.spy(Example.class);
 
 //	@Before
 //	public void setup() throws Exception{
@@ -46,12 +47,13 @@ class ExampleTest {
 //}
 
 	@Test
-	public void test_subscribeSyncExample() throws IOException {
+	public void test_subscribeSyncExample() throws IOException, ExecutionException, InterruptedException {
 		List<String> expetedValue = new ArrayList<String>();
 		expetedValue.add("001");
 		// stub
-		doReturn(expetedValue).when(eg).ackMessageList(Mockito.any());
-		eg.subscribeSyncExample("cherish-serenity-dev", "test-template-sub", 3);
+//		doReturn(expetedValue).when(eg).ackMessageList(Mockito.any());
+		PublisherSyncExample.publisherExample();
+		example.subscribeSyncExample("cherish-serenity-dev", "test-template-sub", 3);
 	}
 
 	@Test
@@ -60,7 +62,7 @@ class ExampleTest {
 		expetedValue.add("device_Id");
 		HashMap<String, String> fileCompleteMap = new HashMap<String, String>();
 //	doReturn(expetedValue).when(eg).ackMessageList(Mockito.any());
-		eg.ackMessageList(fileCompleteMap);
+		example.ackMessageList(fileCompleteMap);
 	}
 
 	@Test
@@ -69,16 +71,11 @@ class ExampleTest {
 		expetedValue.add("device_Id");
 		HashMap<String, String> fileCompleteMap = new HashMap<String, String>();
 		// stub
-		doReturn(expetedValue).when(eg).ackMessageList(fileCompleteMap);
-			List<String> output = eg.ackMessageList(fileCompleteMap);
-			assertEquals(expetedValue, output);	
-	}
+		doReturn(expetedValue).when(example).ackMessageList(fileCompleteMap);
 
-//@Test
-//public void testClass() {
-//	doReturn(100).when(eg).method4();
-//	int res = eg.method2();
-//	System.out.println(res);
-//}
+			List<String> output = example.ackMessageList(fileCompleteMap);
+			assertEquals(expetedValue, output);
+		
+	}
 
 }

@@ -33,17 +33,13 @@ public class PublisherSyncExample {
 			ByteString data = ByteString.copyFromUtf8(message);
 //            PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(data).putAttributes("pubsubMessage", "newFile").build();
 			Map<String, String> attributeMap = new HashMap<>();
-			attributeMap.put("filename", "newFile6");
-			attributeMap.put("CRC32C", "CRC32Cvalue1");
+			attributeMap.put("filename", "newFile");
+			attributeMap.put("CRC32C", "CRC32Cvalue");
 			attributeMap.put("sequence", "6");
 			attributeMap.put("bytesread", "1");
 
 			PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(data).putAllAttributes(attributeMap)
 					.build();
-//            String fileName= "new_file";
-
-			// Once published, returns a server-assigned message id (unique within the
-			// topic)
 			ApiFuture<String> messageIdFuture = publisher.publish(pubsubMessage);
 			String messageId = messageIdFuture.get();
 			System.out.println("Published message ID: " + messageId);

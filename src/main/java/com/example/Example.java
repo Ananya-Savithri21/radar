@@ -16,162 +16,187 @@ import com.google.cloud.functions.HttpResponse;
 import java.io.IOException;
 import java.util.*;
 
-public class Example implements HttpFunction {
-	public static MultiValuedMap<String, ReceivedMessage> chunkMap = new ArrayListValuedHashMap<String, ReceivedMessage>();
-	private static final String DIGEST_ALGORITHM_SHA1 = "SHA256";
-	public static String projectId = "cherish-serenity-dev";
-	public static String subscriptionId = "test-template-sub";
-	public static Integer numOfMessages = 3;
-	public static HashMap<String, String> fileWithLastSequenceMap = new HashMap<>();
 
-	@Override
-	public void service(HttpRequest request, HttpResponse response) throws Exception {
-		Example pubsub = new Example();
-		MultiValuedMap<String, ReceivedMessage> chunkMap = pubsub.subscribeSyncExample(projectId, subscriptionId,
-				numOfMessages);
-		Merger merger = new Merger();
-		merger.mergeChunks(chunkMap);
+public class Example implements HttpFunction
+{
+    public static MultiValuedMap<String, ReceivedMessage> chunkMap = new ArrayListValuedHashMap<String, ReceivedMessage>();
+    private static final String DIGEST_ALGORITHM_SHA1 = "SHA256";
+    public static String projectId = "cherish-serenity-dev";
+    public static String subscriptionId = "test-template-sub";
+    public static Integer numOfMessages = 3;
+    public static HashMap<String, String> fileWithLastSequenceMap = new HashMap<>();
 
-		/*
-		 * subscribeSyncExample(projectId, subscriptionId, numOfMessages);
-		 * //System.out.println("Chunk size is " + chunkMap.size());
-		 * Merger.mergeChunks(chunkMap);
-		 */
-	}
+    @Override
+    public void service(HttpRequest request, HttpResponse response) throws Exception
+    {
+        Example pubsub = new Example();
+        MultiValuedMap<String, ReceivedMessage> chunkMap = pubsub.subscribeSyncExample(projectId, subscriptionId, numOfMessages);
+        Merger merger = new Merger();
+        merger.mergeChunks(chunkMap);
 
-	public MultiValuedMap<String, ReceivedMessage> subscribeSyncExample(String projectId, String subscriptionId,
-			Integer numOfMessages) throws IOException {
-		SubscriberStubSettings subscriberStubSettings = SubscriberStubSettings.newBuilder()
-				.setTransportChannelProvider(SubscriberStubSettings.defaultGrpcTransportProviderBuilder()
-						.setMaxInboundMessageSize(20 * 1024 * 1024) // 20MB (maximum message size).
-						.build())
-				.build();
+        /*subscribeSyncExample(projectId, subscriptionId, numOfMessages);
+        //System.out.println("Chunk size is " + chunkMap.size());
+        Merger.mergeChunks(chunkMap);*/
+    }
+    
 
-		try (SubscriberStub subscriber = GrpcSubscriberStub.create(subscriberStubSettings)) {
-			String subscriptionName = ProjectSubscriptionName.format(projectId, subscriptionId);
-			PullRequest pullRequest = PullRequest.newBuilder().setMaxMessages(numOfMessages).setReturnImmediately(false)
-					.setSubscription(subscriptionName).build();
+    public MultiValuedMap<String, ReceivedMessage> subscribeSyncExample(String projectId, String subscriptionId, Integer numOfMessages) throws IOException
+    {
+        SubscriberStubSettings subscriberStubSettings =
+                SubscriberStubSettings.newBuilder()
+                        .setTransportChannelProvider(
+                                SubscriberStubSettings.defaultGrpcTransportProviderBuilder()
+                                        .setMaxInboundMessageSize(20 * 1024 * 1024) // 20MB (maximum message size).
+                                        .build())
+                        .build();
 
-			// Use pullCallable().futureCall to asynchronously perform this operation.
-			while (true) {
-				PullResponse pullResponse = subscriber.pullCallable().call(pullRequest);
+        try (SubscriberStub subscriber = GrpcSubscriberStub.create(subscriberStubSettings))
+        {
+            String subscriptionName = ProjectSubscriptionName.format(projectId, subscriptionId);
+            PullRequest pullRequest =
+                    PullRequest.newBuilder()
+                            .setMaxMessages(numOfMessages)
+                            .setReturnImmediately(false)
+                            .setSubscription(subscriptionName)
+                            .build();
 
-				// Stop the program if the pull response is empty to avoid acknowledging
-				// an empty list of ack IDs.
-				if (pullResponse.getReceivedMessagesList().isEmpty()) {
-					System.out.println("No message was pulled. Exiting.");
-					break;
-					// return;
-				}
+            // Use pullCallable().futureCall to asynchronously perform this operation.
+            while (true)
+            {
+                PullResponse pullResponse = subscriber.pullCallable().call(pullRequest);
 
-				List<String> ackIds = new ArrayList<>();
+                // Stop the program if the pull response is empty to avoid acknowledging
+                // an empty list of ack IDs.
+                if (pullResponse.getReceivedMessagesList().isEmpty())
+                {
+                    System.out.println("No message was pulled. Exiting.");
+                    break;
+                    //return;
+                }
 
-				for (ReceivedMessage message : pullResponse.getReceivedMessagesList()) {
-					// Handle received message
-					// ...
-					System.out.println("messageid: " + message.getMessage().getMessageId());
+                List<String> ackIds = new ArrayList<>();
 
-					String filename = message.getMessage().getAttributesMap().get("filename");
+                for (ReceivedMessage message : pullResponse.getReceivedMessagesList())
+                {
+                    // Handle received message
+                    // ...
+                    System.out.println("messageid: " + message.getMessage().getMessageId());
 
-					chunkMap.put(filename, message);
+                    String filename = message.getMessage().getAttributesMap().get("filename");
 
-					String checksum = message.getMessage().getAttributesMap().get("CRC32C");
+                    chunkMap.put(filename, message);
 
-					// check for lastchunk arrival and register the filename
-					if ((checksum != null) && checksum.length() > 0) {
-						String sequence = message.getMessage().getAttributesMap().get("sequence");
-						fileWithLastSequenceMap.put(filename, sequence);
-					}
-				}
-			}
+                    String checksum = message.getMessage().getAttributesMap().get("CRC32C");
 
-			HashMap<String, String> fileCompleteMap = completnessCheck(fileWithLastSequenceMap);
+                    //check for lastchunk arrival and register the filename
+                    if ((checksum != null) && checksum.length() > 0)
+                    {
+                        String sequence = message.getMessage().getAttributesMap().get("sequence");
+                        fileWithLastSequenceMap.put(filename, sequence);
+                    }
+                }
+            }
+
+            HashMap<String, String> fileCompleteMap = completnessCheck(fileWithLastSequenceMap);
 //            HashMap<String, String> fileCompleteMap = new HashMap<String, String>();
 //            List<String> ackIds = ackMessageList(fileCompleteMap);
-			List<String> ackIds = ackMessageList(fileCompleteMap);
-			AcknowledgeRequest acknowledgeRequest = AcknowledgeRequest.newBuilder().setSubscription(subscriptionName)
-					.addAllAckIds(ackIds).build();
+  
+            List<String> ackIds =ackMessageList(fileCompleteMap);
+            AcknowledgeRequest acknowledgeRequest =
+                    AcknowledgeRequest.newBuilder()
+                            .setSubscription(subscriptionName)
+                            .addAllAckIds(ackIds)
+                            .build();
 
-			// Use acknowledgeCallable().futureCall to asynchronously perform this
-			// operation.
-			subscriber.acknowledgeCallable().call(acknowledgeRequest);
+            // Use acknowledgeCallable().futureCall to asynchronously perform this operation.
+            subscriber.acknowledgeCallable().call(acknowledgeRequest);
 
-			// retains only filenames available in filecompletemap(all chunks available)
-			Set<String> fileNameKeySet = fileCompleteMap.keySet();
 
-			for (String filename : fileNameKeySet) {
-				if (!chunkMap.containsKey(filename)) {
-					chunkMap.remove(filename);
-				}
-			}
-		}
+            //retains only filenames available in filecompletemap(all chunks available)
+            Set<String> fileNameKeySet = fileCompleteMap.keySet();
 
-		return chunkMap;
-	}
+            for (String filename : fileNameKeySet)
+            {
+                if (!chunkMap.containsKey(filename))
+                {
+                    chunkMap.remove(filename);
+                }
+            }
+        }
 
-	public List<String> ackMessageList(HashMap<String, String> fileCompleteMap) {
-		List<String> myackIds = new ArrayList<>();
+        return chunkMap;
+    }
 
-		for (Map.Entry<String, String> entry : fileCompleteMap.entrySet()) {
-			String fileName = entry.getKey();
+    public List<String> ackMessageList(HashMap<String, String> fileCompleteMap)
+    {
+        List<String> myackIds = new ArrayList<>();
 
-			Collection<ReceivedMessage> pubsubMessageCollection = chunkMap.get(fileName);
+        for (Map.Entry<String, String> entry : fileCompleteMap.entrySet())
+        {
+            String fileName = entry.getKey();
 
-			for (ReceivedMessage message : pubsubMessageCollection) {
-				// add all the valid message ids
-				myackIds.add(message.getAckId());
-			}
-		}
+            Collection<ReceivedMessage> pubsubMessageCollection = chunkMap.get(fileName);
 
-		return myackIds;
-	}
+            for (ReceivedMessage message : pubsubMessageCollection)
+            {
+                //add all the valid message ids
+                myackIds.add(message.getAckId());
+            }
+        }
 
-	public HashMap<String, String> completnessCheck(HashMap<String, String> completeChunkFileMap) {
-		HashMap<String, String> chunkFileMap = completeChunkFileMap;
+        return myackIds;
+    }
 
-		System.out.println("entering completeness check");
+    public HashMap<String, String> completnessCheck(HashMap<String, String> completeChunkFileMap)
+    {
+        HashMap<String, String> chunkFileMap = completeChunkFileMap;
 
-		List<String> completeFile = new ArrayList<>();
+        System.out.println("entering completeness check");
 
-		for (String fileName : chunkFileMap.keySet()) {
-			// check if file is complete by checking all the other chunks are available
-			// using sequence no
-			ArrayList<Integer> fileSequenceList = new ArrayList();
+        List<String> completeFile = new ArrayList<>();
 
-			Collection<ReceivedMessage> chunks = chunkMap.get(fileName);
+        for (String fileName : chunkFileMap.keySet())
+        {
+            //check if file is complete by checking all the other chunks are available using sequence no
+            ArrayList<Integer> fileSequenceList = new ArrayList();
 
-			// collect all the sequence numbers for a file
-			Iterator<ReceivedMessage> itr = chunks.iterator();
-			while (itr.hasNext()) {
-				PubsubMessage pubsubMessage = itr.next().getMessage();
-				if (pubsubMessage.getAttributesMap().get("sequence") != null) {
-					fileSequenceList.add(Integer.parseInt(pubsubMessage.getAttributesMap().get("sequence")));
+            Collection<ReceivedMessage> chunks = chunkMap.get(fileName);
 
-				}
-			}
+            //collect all the sequence numbers for a file
+            Iterator<ReceivedMessage> itr = chunks.iterator();
+            while (itr.hasNext())
+            {
+                PubsubMessage pubsubMessage = itr.next().getMessage();
+                if(pubsubMessage.getAttributesMap().get("sequence")!= null) {
+                fileSequenceList.add(Integer.parseInt(pubsubMessage.getAttributesMap().get("sequence")));
+            
+                }
+                }
 
-			// check if all the sequence numbers are available based on last sequencenumber
-			// for the file
-			Integer lastSequenceNumber = Integer.parseInt(completeChunkFileMap.get(fileName));
+            //check if all the sequence numbers are available based on last sequencenumber for the file
+            Integer lastSequenceNumber = Integer.parseInt(completeChunkFileMap.get(fileName));
 
-			for (int i = 1; i <= lastSequenceNumber; i++) {
-				boolean sequenceCheck = fileSequenceList.contains(i);
+            for (int i = 1; i <= lastSequenceNumber; i++)
+            {
+                boolean sequenceCheck = fileSequenceList.contains(i);
 
-				if (!sequenceCheck) {
-					System.out.println("File is incomplete: " + fileName + "sequence missing: " + i);
-					chunkFileMap.remove(fileName);
-					break;
-				}
-			}
+                if (!sequenceCheck)
+                {
+                    System.out.println("File is incomplete: " + fileName + "sequence missing: " + i);
+//                    chunkFileMap.remove(fileName);
+                    chunkFileMap.remove(chunkFileMap.get(fileName));
+                    break;
+                }
+            }
 
-			System.out.println("File is complete: " + fileName);
-		}
+            System.out.println("File is complete: " + fileName);
+        }
 
-		System.out.println("Exiting completeness check");
+        System.out.println("Exiting completeness check");
 
-		return chunkFileMap;
-	}
-
+        return chunkFileMap;
+    }
+    
 //    public int method2() {
 //    	System.out.println("abc");
 //    	HashMap<String, String> fileCompleteMap = new HashMap<String, String>();
@@ -184,5 +209,5 @@ public class Example implements HttpFunction {
 //    	System.out.println("abc");
 //        return 10;
 //    }
-
+    
 }

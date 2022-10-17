@@ -22,17 +22,6 @@ class GoogleCloudStorageTest {
 	 byte[] bytes = bytecode.getBytes();
 	GoogleCloudStorage googleStorage = new GoogleCloudStorage(); 
 	
-//	  @Before
-//	  public void beforeTest()  {
-//	    MockitoAnnotations.initMocks(this);
-//	    String projectid = "cherish-serenity-dev";
-//	    Storage storage = StorageOptions.newBuilder().setProjectId(projectid).build().getService();
-//	    BlobId myblobId = BlobId.of("serenity-1", "file");
-//       BlobInfo myblobinfo = BlobInfo.newBuilder(myblobId).build();
-////       Blob blob = new Blob;
-//	    when(storage.create(myblobinfo, bytes)).thenReturn(null);
-//	  }
-	
 	@Test
 	public void test_Service() {
 	

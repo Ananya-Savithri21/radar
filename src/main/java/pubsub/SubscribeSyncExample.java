@@ -171,7 +171,7 @@ public class SubscribeSyncExample
                 if (!sequenceCheck)
                 {
                     System.out.println("File is incomplete: " + fileName + "sequence missing: " + i);
-                    chunkFileMap.remove(fileName);
+                    chunkFileMap.remove(chunkFileMap.get(fileName));
                     break;
                 }
             }
